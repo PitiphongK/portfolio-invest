@@ -20,7 +20,10 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { EllipsisVerticalIcon, CircleUserRoundIcon, CreditCardIcon, BellIcon, LogOutIcon } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
+import { ChevronsUpDownIcon, SparklesIcon, BadgeCheckIcon, CreditCardIcon, BellIcon, LogOutIcon } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
 
 export function NavUser({
   user,
@@ -31,7 +34,26 @@ export function NavUser({
     avatar: string
   }
 }) {
-  const { isMobile } = useSidebar()
+  const { isMobile } = useSidebar();
+  const router = useRouter();
+  const [loggingOut, setLoggingOut] = useState<boolean>(false);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    const supabase = createClient();
+    try {
+      const { error } = await supabase.auth.signOut({
+        scope: "local",
+      });
+      if (error) throw error;
+      router.replace("/auth/login");
+      router.refresh()
+    } catch {
+
+    } finally {
+      setLoggingOut(false);
+    }
+  }
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -41,20 +63,18 @@ export function NavUser({
               <SidebarMenuButton size="lg" className="aria-expanded:bg-muted" />
             }
           >
-            <Avatar className="size-8 rounded-lg grayscale">
+            <Avatar>
               <AvatarImage src={user.avatar} alt={user.name} />
-              <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+              <AvatarFallback>CN</AvatarFallback>
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium">{user.name}</span>
-              <span className="truncate text-xs text-foreground/70">
-                {user.email}
-              </span>
+              <span className="truncate text-xs">{user.email}</span>
             </div>
-            <EllipsisVerticalIcon className="ml-auto size-4" />
+            <ChevronsUpDownIcon className="ml-auto size-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="min-w-56"
+            className="w-fit"
             side={isMobile ? "bottom" : "right"}
             align="end"
             sideOffset={4}
@@ -62,15 +82,13 @@ export function NavUser({
             <DropdownMenuGroup>
               <DropdownMenuLabel className="p-0 font-normal">
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                  <Avatar className="size-8">
+                  <Avatar>
                     <AvatarImage src={user.avatar} alt={user.name} />
-                    <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                    <AvatarFallback>CN</AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium">{user.name}</span>
-                    <span className="truncate text-xs text-muted-foreground">
-                      {user.email}
-                    </span>
+                    <span className="truncate text-xs">{user.email}</span>
                   </div>
                 </div>
               </DropdownMenuLabel>
@@ -78,7 +96,15 @@ export function NavUser({
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem>
-                <CircleUserRoundIcon
+                <SparklesIcon
+                />
+                Upgrade to Pro
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem>
+                <BadgeCheckIcon
                 />
                 Account
               </DropdownMenuItem>
@@ -94,10 +120,10 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout} disabled={loggingOut}>
               <LogOutIcon
               />
-              Log out
+              { loggingOut ? "Logging out..." : "Log out" }
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
