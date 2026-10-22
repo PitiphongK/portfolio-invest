@@ -1,5 +1,5 @@
 import { AppError } from "@/lib/error/error";
-import { createAccount } from "@/lib/service/account-service";
+import { createPortfolio } from "@/lib/service/portfolio-service";
 import { createClient } from "@/lib/supabase/server";
 import { PostgrestError } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
@@ -20,11 +20,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       throw new AppError("Name should be between 1-70 characters", {status: 400});
     }
 
-    const account = await createAccount(name, user, supabase);
-    return NextResponse.json({account}, {status: 201});
+    const portfolio = await createPortfolio(name, user, supabase);
+    return NextResponse.json({portfolio}, {status: 201});
   } catch (error) {
     let errorCode = 500;
-    let errorMessage = "Unable to create an account";
+    let errorMessage = "Unable to create an portfolio";
 
     if (error instanceof PostgrestError) console.error(error);
     if (error instanceof AppError && typeof error.details?.status === "number") {

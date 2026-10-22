@@ -1,23 +1,23 @@
 import { SupabaseClient } from "@supabase/supabase-js"
 
-export interface Account {
+export interface Portfolio {
   id: number,
   userId: string,
   name: string,
 }
 
-interface AccountRepository {
-  create(name:string, user_id:string): Promise<Account>,
-  findById(id: number): Promise<Account | null>,
+interface PortfolioRepository {
+  create(name:string, user_id:string): Promise<Portfolio>,
+  findById(id: number): Promise<Portfolio | null>,
 }
 
-export function createAccountRepository(
+export function createPortfolioRepository(
   supabase: SupabaseClient
-) : AccountRepository {
+) : PortfolioRepository {
   return {
     async create(name, user_id) {
       const { data, error } = await supabase
-        .from("accounts")
+        .from("portfolios")
         .insert({name, user_id})
         .select()
         .maybeSingle();
@@ -26,7 +26,7 @@ export function createAccountRepository(
     },
     async findById(id) {
       const { data, error } = await supabase
-        .from("account")
+        .from("portfolio")
         .select()
         .eq("id", id)
         .maybeSingle()
