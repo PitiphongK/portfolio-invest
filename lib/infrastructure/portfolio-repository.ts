@@ -2,7 +2,7 @@ import { SupabaseClient } from "@supabase/supabase-js"
 
 export interface Portfolio {
   id: number,
-  userId: string,
+  user_id: string,
   name: string,
 }
 

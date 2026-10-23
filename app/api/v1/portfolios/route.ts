@@ -32,7 +32,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       errorCode = error.details.status;
       errorMessage = error.message;
     }
-
     return NextResponse.json({error: errorMessage}, {status: errorCode})
   }
 }
