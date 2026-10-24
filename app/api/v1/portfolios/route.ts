@@ -5,6 +5,8 @@ import { PostgrestError } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
+export const nameCharacterLimit = 70;
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const cookieStore = await cookies();
@@ -16,8 +18,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       throw new AppError("Name must be a string", {status: 400});
     }
     const name: string = body.name.trim();
-    if (!name || [...name].length > 70) {
-      throw new AppError("Name should be between 1-70 characters", {status: 400});
+    if (!name || [...name].length > nameCharacterLimit) {
+      throw new AppError(`Name should be between 1-${nameCharacterLimit} characters`, {status: 400});
     }
 
     const portfolio = await createPortfolio(name, user, supabase);
