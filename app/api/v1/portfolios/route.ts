@@ -13,7 +13,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const supabase = await createClient(cookieStore);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new AppError("Unauthenticated", {status: 401});
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      throw new AppError("Invalid JSON", { status: 400 });
+    }
     if (typeof body !== "object" || body === null || !("name" in body) || typeof body.name !== "string"){
       throw new AppError("Name must be a string", {status: 400});
     }
