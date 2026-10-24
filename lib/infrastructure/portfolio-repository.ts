@@ -9,6 +9,7 @@ export interface Portfolio {
 interface PortfolioRepository {
   create(name: string, user_id: string): Promise<Portfolio>;
   findById(id: number): Promise<Portfolio | null>;
+  findByUser(user_id: string): Promise<Portfolio[]>;
 }
 
 export function createPortfolioRepository(
@@ -26,12 +27,20 @@ export function createPortfolioRepository(
     },
     async findById(id) {
       const { data, error } = await supabase
-        .from("portfolio")
+        .from("portfolios")
         .select()
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
       return data ? data : null;
+    },
+    async findByUser(user_id) {
+      const { data, error } = await supabase
+        .from("portfolios")
+        .select()
+        .eq("user_id", user_id);
+      if (error) throw error;
+      return data ? data : [];
     },
   };
 }

@@ -1,11 +1,40 @@
 import { AppError } from "@/lib/error/error";
-import { createPortfolio } from "@/lib/service/portfolio-service";
+import {
+  createPortfolio,
+  getPortfolios,
+} from "@/lib/service/portfolio-service";
 import { createClient } from "@/lib/supabase/server";
 import { PostgrestError } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
 export const nameCharacterLimit = 70;
+
+export async function GET(): Promise<NextResponse> {
+  try {
+    const cookieStore = await cookies();
+    const supabase = await createClient(cookieStore);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new AppError("Unauthenticated", { status: 401 });
+    const portfolios = await getPortfolios(user, supabase);
+    return NextResponse.json({ portfolios }, { status: 200 });
+  } catch (error) {
+    let errorCode = 500;
+    let errorMessage = "Unable to retrieve portfolios";
+    if (error instanceof PostgrestError) console.error(error);
+    if (
+      error instanceof AppError &&
+      typeof error.details?.status === "number"
+    ) {
+      console.error(error);
+      errorCode = error.details.status;
+      errorMessage = error.message;
+    }
+    return NextResponse.json({ error: errorMessage }, { status: errorCode });
+  }
+}
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {

@@ -1,8 +1,11 @@
 import { Portfolio } from "@/lib/infrastructure/portfolio-repository";
 import { NextRequest } from "next/server";
 import { beforeEach, expect, test, vi } from "vitest";
-import { nameCharacterLimit, POST } from "./route";
-import { createPortfolio } from "@/lib/service/portfolio-service";
+import { GET, nameCharacterLimit, POST } from "./route";
+import {
+  createPortfolio,
+  getPortfolios,
+} from "@/lib/service/portfolio-service";
 
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
@@ -22,6 +25,7 @@ vi.mock("@/lib/supabase/server", () => ({
 
 vi.mock(import("@/lib/service/portfolio-service"), () => ({
   createPortfolio: vi.fn(),
+  getPortfolios: vi.fn(),
 }));
 
 beforeEach(() => {
@@ -34,168 +38,211 @@ beforeEach(() => {
   });
 });
 
-test("creates a portfolio correctly", async () => {
-  const portfolio: Portfolio = {
-    id: 1,
-    user_id: "user-1",
-    name: "Long-term Portfolio",
-  };
-  vi.mocked(createPortfolio).mockResolvedValue(portfolio);
-  const request = new NextRequest("http://localhost:3000/api/v1/portfolios", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+test.describe("GET /api/v1/portfolios", () => {
+  test("retrieves portfolios correctly", async () => {
+    vi.mocked(getPortfolios).mockResolvedValue([
+      { id: 1, user_id: "user-1", name: "Portfolio-1" },
+      { id: 2, user_id: "user-2", name: "Portfolio-2" },
+    ]);
+    const response = await GET();
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      portfolios: [
+        { id: 1, user_id: "user-1", name: "Portfolio-1" },
+        { id: 2, user_id: "user-2", name: "Portfolio-2" },
+      ],
+    });
+  });
+  test("rejects unauthenticated user", async () => {
+    mocks.getUser.mockResolvedValue({
+      data: {
+        user: null,
+      },
+    });
+    const response = await GET();
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({
+      error: "Unauthenticated",
+    });
+  });
+
+  test("returns a generic error when portfolio retrieval fails", async () => {
+    vi.mocked(getPortfolios).mockRejectedValueOnce(
+      new Error("Internal database details"),
+    );
+    const response = await GET();
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: "Unable to retrieve portfolios",
+    });
+  });
+});
+
+test.describe("POST /api/v1/portfolios", () => {
+  test("creates a portfolio correctly", async () => {
+    const portfolio: Portfolio = {
+      id: 1,
+      user_id: "user-1",
       name: "Long-term Portfolio",
-    }),
-  });
-  const response = await POST(request);
-  expect(response.status).toBe(201);
-  expect(await response.json()).toEqual({ portfolio });
-  expect(createPortfolio).toHaveBeenCalledExactlyOnceWith(
-    "Long-term Portfolio",
-    expect.objectContaining({ id: "user-1" }),
-    expect.anything(),
-  );
-});
-
-test.describe(`name should be between 1-${nameCharacterLimit} characters`, () => {
-  test.for([
-    { name: "Long-term Porfolio", expectedStatus: 201 },
-    { name: " Long-term Porfolio ", expectedStatus: 201 },
-    { name: "1", expectedStatus: 201 },
-    { name: "1".repeat(nameCharacterLimit), expectedStatus: 201 },
-  ])(
-    'Create a portfolio named \"$name\", expects response status $expectedStatus',
-    async ({ name, expectedStatus }) => {
-      const portfolio: Portfolio = {
-        id: 1,
-        user_id: "user-1",
-        name: name.trim(),
-      };
-      vi.mocked(createPortfolio).mockResolvedValue(portfolio);
-      const request = new NextRequest(
-        "http://localhost:3000/api/v1/portfolios",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name,
-          }),
-        },
-      );
-      const response = await POST(request);
-      expect(response.status).toBe(expectedStatus);
-      expect(await response.json()).toEqual({ portfolio });
-      expect(createPortfolio).toHaveBeenCalledExactlyOnceWith(
-        name.trim(),
-        expect.objectContaining({ id: "user-1" }),
-        expect.anything(),
-      );
-    },
-  );
-
-  test.for([
-    { name: 1, expectedStatus: 400, errorMessage: "Name must be a string" },
-    {
-      name: "",
-      expectedStatus: 400,
-      errorMessage: `Name should be between 1-${nameCharacterLimit} characters`,
-    },
-    {
-      name: " ",
-      expectedStatus: 400,
-      errorMessage: `Name should be between 1-${nameCharacterLimit} characters`,
-    },
-    {
-      name: "1".repeat(nameCharacterLimit + 1),
-      expectedStatus: 400,
-      errorMessage: `Name should be between 1-${nameCharacterLimit} characters`,
-    },
-  ])(
-    'Create a portfolio named \"$name\", expects response status $expectedStatus, error message \"$errorMessage\"',
-    async ({ name, expectedStatus, errorMessage }) => {
-      const request = new NextRequest(
-        "http://localhost:3000/api/v1/portfolios",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name,
-          }),
-        },
-      );
-      const response = await POST(request);
-      expect(createPortfolio).not.toHaveBeenCalled();
-      expect(response.status).toBe(expectedStatus);
-      expect(await response.json()).toEqual({ error: errorMessage });
-    },
-  );
-});
-
-test.for([{}, null])("rejects invalid body: %j", async (body) => {
-  const request = new NextRequest("http://localhost:3000/api/v1/portfolios", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    };
+    vi.mocked(createPortfolio).mockResolvedValue(portfolio);
+    const request = new NextRequest("http://localhost:3000/api/v1/portfolios", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Long-term Portfolio",
+      }),
+    });
+    const response = await POST(request);
+    expect(response.status).toBe(201);
+    expect(await response.json()).toEqual({ portfolio });
+    expect(createPortfolio).toHaveBeenCalledExactlyOnceWith(
+      "Long-term Portfolio",
+      expect.objectContaining({ id: "user-1" }),
+      expect.anything(),
+    );
   });
 
-  const response = await POST(request);
+  test.describe(`name should be between 1-${nameCharacterLimit} characters`, () => {
+    test.for([
+      { name: "Long-term Porfolio", expectedStatus: 201 },
+      { name: " Long-term Porfolio ", expectedStatus: 201 },
+      { name: "1", expectedStatus: 201 },
+      { name: "1".repeat(nameCharacterLimit), expectedStatus: 201 },
+    ])(
+      'Create a portfolio named \"$name\", expects response status $expectedStatus',
+      async ({ name, expectedStatus }) => {
+        const portfolio: Portfolio = {
+          id: 1,
+          user_id: "user-1",
+          name: name.trim(),
+        };
+        vi.mocked(createPortfolio).mockResolvedValue(portfolio);
+        const request = new NextRequest(
+          "http://localhost:3000/api/v1/portfolios",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name,
+            }),
+          },
+        );
+        const response = await POST(request);
+        expect(response.status).toBe(expectedStatus);
+        expect(await response.json()).toEqual({ portfolio });
+        expect(createPortfolio).toHaveBeenCalledExactlyOnceWith(
+          name.trim(),
+          expect.objectContaining({ id: "user-1" }),
+          expect.anything(),
+        );
+      },
+    );
 
-  expect(response.status).toBe(400);
-  expect(await response.json()).toEqual({
-    error: "Name must be a string",
+    test.for([
+      { name: 1, expectedStatus: 400, errorMessage: "Name must be a string" },
+      {
+        name: "",
+        expectedStatus: 400,
+        errorMessage: `Name should be between 1-${nameCharacterLimit} characters`,
+      },
+      {
+        name: " ",
+        expectedStatus: 400,
+        errorMessage: `Name should be between 1-${nameCharacterLimit} characters`,
+      },
+      {
+        name: "1".repeat(nameCharacterLimit + 1),
+        expectedStatus: 400,
+        errorMessage: `Name should be between 1-${nameCharacterLimit} characters`,
+      },
+    ])(
+      'Create a portfolio named \"$name\", expects response status $expectedStatus, error message \"$errorMessage\"',
+      async ({ name, expectedStatus, errorMessage }) => {
+        const request = new NextRequest(
+          "http://localhost:3000/api/v1/portfolios",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name,
+            }),
+          },
+        );
+        const response = await POST(request);
+        expect(createPortfolio).not.toHaveBeenCalled();
+        expect(response.status).toBe(expectedStatus);
+        expect(await response.json()).toEqual({ error: errorMessage });
+      },
+    );
   });
-  expect(createPortfolio).not.toHaveBeenCalled();
-});
 
-test("rejects unauthenticated users", async () => {
-  mocks.getUser.mockResolvedValue({
-    data: { user: null },
-  });
-  const request = new NextRequest("http://localhost:3000/api/v1/portfolios", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      name: "Long-term Portfolio",
-    }),
-  });
-  const response = await POST(request);
-  expect(createPortfolio).not.toHaveBeenCalled();
-  expect(response.status).toBe(401);
-  expect(await response.json()).toEqual({ error: "Unauthenticated" });
-});
+  test.for([{}, null])("rejects invalid body: %j", async (body) => {
+    const request = new NextRequest("http://localhost:3000/api/v1/portfolios", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
 
-test("returns a generic error when portfolio creation fails", async () => {
-  vi.mocked(createPortfolio).mockRejectedValueOnce(
-    new Error("Internal database details"),
-  );
+    const response = await POST(request);
 
-  const request = new NextRequest("http://localhost:3000/api/v1/portfolios", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: "Investments" }),
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: "Name must be a string",
+    });
+    expect(createPortfolio).not.toHaveBeenCalled();
   });
 
-  const response = await POST(request);
-
-  expect(response.status).toBe(500);
-  expect(await response.json()).toEqual({
-    error: "Unable to create an portfolio",
+  test("rejects unauthenticated users", async () => {
+    mocks.getUser.mockResolvedValue({
+      data: { user: null },
+    });
+    const request = new NextRequest("http://localhost:3000/api/v1/portfolios", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Long-term Portfolio",
+      }),
+    });
+    const response = await POST(request);
+    expect(createPortfolio).not.toHaveBeenCalled();
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: "Unauthenticated" });
   });
-});
 
-test("rejects malformed JSON", async () => {
-  const request = new NextRequest("http://localhost:3000/api/v1/portfolios", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: '{"name":',
+  test("returns a generic error when portfolio creation fails", async () => {
+    vi.mocked(createPortfolio).mockRejectedValueOnce(
+      new Error("Internal database details"),
+    );
+
+    const request = new NextRequest("http://localhost:3000/api/v1/portfolios", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Investments" }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: "Unable to create an portfolio",
+    });
   });
 
-  const response = await POST(request);
+  test("rejects malformed JSON", async () => {
+    const request = new NextRequest("http://localhost:3000/api/v1/portfolios", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: '{"name":',
+    });
 
-  expect(response.status).toBe(400);
-  expect(await response.json()).toEqual({
-    error: "Invalid JSON",
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: "Invalid JSON",
+    });
+    expect(createPortfolio).not.toHaveBeenCalled();
   });
-  expect(createPortfolio).not.toHaveBeenCalled();
 });
