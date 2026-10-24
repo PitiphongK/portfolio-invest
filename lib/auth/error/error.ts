@@ -1,11 +1,16 @@
-export type LoginErrorCode = "invalid_link" | "verification_failed" | "server_error" | "over_request_rate_limit" | "over_email_send_rate_limit";
+export type LoginErrorCode =
+  | "invalid_link"
+  | "verification_failed"
+  | "server_error"
+  | "over_request_rate_limit"
+  | "over_email_send_rate_limit";
 
 interface LoginErrorDetails {
-  title: string,
-  description: string,
+  title: string;
+  description: string;
 }
 
-export const loginError : Record<LoginErrorCode, LoginErrorDetails> = {
+export const loginError: Record<LoginErrorCode, LoginErrorDetails> = {
   invalid_link: {
     title: "Link expired or invalid",
     description: "Request a new sign-in link to continue.",
@@ -25,5 +30,5 @@ export const loginError : Record<LoginErrorCode, LoginErrorDetails> = {
   over_email_send_rate_limit: {
     title: "Too many email requests",
     description: "Please wait to ask for a new verification email",
-  }
+  },
 };

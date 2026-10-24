@@ -3,14 +3,15 @@ import { createClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
-
 export async function GET(request: NextRequest) {
   const tokenHash = request.nextUrl.searchParams.get("token_hash");
   const type = request.nextUrl.searchParams.get("type");
 
   if (!tokenHash || type !== "email") {
-    const errorCode : LoginErrorCode = "invalid_link";
-    return NextResponse.redirect(new URL(`/auth/login?error=${errorCode}`, request.url));
+    const errorCode: LoginErrorCode = "invalid_link";
+    return NextResponse.redirect(
+      new URL(`/auth/login?error=${errorCode}`, request.url),
+    );
   }
 
   try {
@@ -21,14 +22,22 @@ export async function GET(request: NextRequest) {
       type,
     });
     if (error) {
-      console.error("Magic link verification faled", {code: error.code, status: error.status})
-      const reason : LoginErrorCode = error.code === "otp_expired" ? "invalid_link": "verification_failed";
-      return NextResponse.redirect(new URL(`/auth/login?error=${reason}`, request.url));
+      console.error("Magic link verification faled", {
+        code: error.code,
+        status: error.status,
+      });
+      const reason: LoginErrorCode =
+        error.code === "otp_expired" ? "invalid_link" : "verification_failed";
+      return NextResponse.redirect(
+        new URL(`/auth/login?error=${reason}`, request.url),
+      );
     }
     return NextResponse.redirect(new URL("/", request.url));
   } catch (error: unknown) {
     console.error("Unexpected error occured during user signin", error);
-    const errorCode : LoginErrorCode = "server_error";
-    return NextResponse.redirect(new URL(`/auth/login?error=${errorCode}`, request.url));
+    const errorCode: LoginErrorCode = "server_error";
+    return NextResponse.redirect(
+      new URL(`/auth/login?error=${errorCode}`, request.url),
+    );
   }
 }

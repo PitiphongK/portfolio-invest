@@ -1,6 +1,4 @@
-import { LoginForm } from "@/components/login-form"
-import { connection } from "next/server";
-import { Suspense } from "react"
+import { LoginForm } from "@/components/login-form";
 
 export default async function LoginPage() {
   return (
@@ -9,5 +7,5 @@ export default async function LoginPage() {
         <LoginForm />
       </div>
     </div>
-  )
+  );
 }

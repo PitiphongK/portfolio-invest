@@ -1,36 +1,39 @@
-"use client"
+"use client";
 
-import { cn } from "cn"
+import { cn } from "cn";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   Field,
   FieldDescription,
   FieldGroup,
   FieldLabel,
   FieldSeparator,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { GalleryVerticalEndIcon, InfoIcon, LoaderCircle } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
-import { useState } from "react"
-import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
-import { useSearchParams } from "next/navigation"
-import { loginError, LoginErrorCode } from "@/lib/auth/error/error"
-import { loginSuccess, LoginSuccessCode } from "@/lib/auth/success/success"
-import { isAuthError } from "@supabase/supabase-js"
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { GalleryVerticalEndIcon, InfoIcon, LoaderCircle } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { useState } from "react";
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
+import { useSearchParams } from "next/navigation";
+import { loginError, LoginErrorCode } from "@/lib/auth/error/error";
+import { loginSuccess, LoginSuccessCode } from "@/lib/auth/success/success";
+import { isAuthError } from "@supabase/supabase-js";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const [loading, setLoading] = useState<boolean>(false);
-  const [submitSuccessCode, setSubmitSuccessCode] = useState<string | null>(null)
-  const [submitErrorCode, setSubmitErrorCode] = useState<string | null>(null)
+  const [submitSuccessCode, setSubmitSuccessCode] = useState<string | null>(
+    null,
+  );
+  const [submitErrorCode, setSubmitErrorCode] = useState<string | null>(null);
   const redirectErrorCode = useSearchParams().get("error");
-  const errorCode = redirectErrorCode ?? submitErrorCode
+  const errorCode = redirectErrorCode ?? submitErrorCode;
 
-  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => { // submit event whose currentTarget is a html form element
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
+    // submit event whose currentTarget is a html form element
     // prevent browser from loding the page
     e.preventDefault();
     setLoading(true);
@@ -45,14 +48,14 @@ export function LoginForm({
     const supabase = createClient();
     const formData = new FormData(e.currentTarget);
     const email = String(formData.get("email"));
-    
+
     try {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
           shouldCreateUser: true,
           emailRedirectTo: `${window.location.origin}/auth/confirm`,
-        }
+        },
       });
       if (error) throw error; // throw to catch
       const successCode: LoginSuccessCode = "email_sent";
@@ -89,24 +92,37 @@ export function LoginForm({
             </a>
             <h1 className="text-xl font-bold">Welcome to Portfolio Invest</h1>
           </div>
-          { errorCode &&
+          {errorCode && (
             <Alert>
               <InfoIcon />
-              <AlertTitle>{Object.hasOwn(loginError, errorCode)? loginError[errorCode as LoginErrorCode].title: "Something went wrong"}</AlertTitle>
+              <AlertTitle>
+                {Object.hasOwn(loginError, errorCode)
+                  ? loginError[errorCode as LoginErrorCode].title
+                  : "Something went wrong"}
+              </AlertTitle>
               <AlertDescription>
-                {Object.hasOwn(loginError, errorCode)? loginError[errorCode as LoginErrorCode].description: "Please try again later."}
+                {Object.hasOwn(loginError, errorCode)
+                  ? loginError[errorCode as LoginErrorCode].description
+                  : "Please try again later."}
               </AlertDescription>
             </Alert>
-          }
-          { submitSuccessCode &&
+          )}
+          {submitSuccessCode && (
             <Alert>
               <InfoIcon />
-              <AlertTitle>{Object.hasOwn(loginSuccess, submitSuccessCode)? loginSuccess[submitSuccessCode as LoginSuccessCode].title: "Something went wrong"}</AlertTitle>
+              <AlertTitle>
+                {Object.hasOwn(loginSuccess, submitSuccessCode)
+                  ? loginSuccess[submitSuccessCode as LoginSuccessCode].title
+                  : "Something went wrong"}
+              </AlertTitle>
               <AlertDescription>
-                {Object.hasOwn(loginSuccess, submitSuccessCode)? loginSuccess[submitSuccessCode as LoginSuccessCode].description: "Please try again later."}
+                {Object.hasOwn(loginSuccess, submitSuccessCode)
+                  ? loginSuccess[submitSuccessCode as LoginSuccessCode]
+                      .description
+                  : "Please try again later."}
               </AlertDescription>
             </Alert>
-          }
+          )}
           <Field>
             <FieldLabel htmlFor="email">Email</FieldLabel>
             <Input
@@ -119,7 +135,11 @@ export function LoginForm({
           </Field>
           <Field>
             <Button type="submit" disabled={loading}>
-              {loading? <LoaderCircle className="animate-spin"/> : "Continue with Email"}
+              {loading ? (
+                <LoaderCircle className="animate-spin" />
+              ) : (
+                "Continue with Email"
+              )}
             </Button>
           </Field>
           <FieldSeparator>Or</FieldSeparator>
@@ -150,5 +170,5 @@ export function LoginForm({
         and <a href="#">Privacy Policy</a>.
       </FieldDescription>
     </div>
-  )
+  );
 }

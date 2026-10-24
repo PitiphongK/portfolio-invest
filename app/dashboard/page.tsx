@@ -1,17 +1,17 @@
-import { AppSidebar } from "@/components/app-sidebar"
-import { SectionCards } from "@/components/section-cards"
+import { AppSidebar } from "@/components/app-sidebar";
+import { SectionCards } from "@/components/section-cards";
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbList,
   BreadcrumbPage,
-} from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
+} from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 export default function Page() {
   return (
@@ -28,9 +28,7 @@ export default function Page() {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbPage>
-                    Dashboard
-                  </BreadcrumbPage>
+                  <BreadcrumbPage>Dashboard</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
@@ -38,7 +36,7 @@ export default function Page() {
         </header>
         <div className="flex flex-col gap-4">
           <div className="@container/main w-full">
-            <SectionCards/>
+            <SectionCards />
           </div>
           <div className="flex flex-1 flex-col gap-4 p-5 pt-0">
             <div className="grid auto-rows-min gap-4 md:grid-cols-3">
@@ -51,5 +49,5 @@ export default function Page() {
         </div>
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 }
