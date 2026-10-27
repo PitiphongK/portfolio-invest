@@ -1,0 +1,54 @@
+name: CI
+
+run-name: Action run by ${{ github.actor }}
+
+on: [push, workflow_dispatch]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Tests, lint, formatting, and types
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      HUSKY: "0"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint --max-warnings=0
+
+      - name: Generate Next.js types
+        run: pnpm exec next typegen
+
+      - name: Check TypeScript
+        run: pnpm exec tsc --noEmit
+
+      - name: Run tests
+        run: pnpm exec vitest run
