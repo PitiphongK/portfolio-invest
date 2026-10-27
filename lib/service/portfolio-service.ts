@@ -1,7 +1,6 @@
 import { createPortfolioRepository } from "@/lib/infrastructure/portfolio-repository";
 import { Portfolio } from "@/lib/infrastructure/portfolio-repository";
 import { SupabaseClient, User } from "@supabase/supabase-js";
-import { AppError } from "../error/error";
 
 export async function getPortfolios(
   user: User,
