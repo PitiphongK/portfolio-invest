@@ -3,6 +3,7 @@ import {
   createPortfolio,
   getPortfolios,
   updatePortfolio,
+  deletePortfolio,
 } from "@/lib/service/portfolio-service";
 import { createClient } from "@/lib/supabase/server";
 import { PostgrestError } from "@supabase/supabase-js";
@@ -125,7 +126,12 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const portfolio = await updatePortfolio(portfolio_id, name, supabase);
+    const portfolio = await updatePortfolio(
+      portfolio_id,
+      name,
+      user.id,
+      supabase,
+    );
     if (!portfolio) {
       throw new AppError("Unable to update the portfolio", { status: 500 });
     }
@@ -133,6 +139,53 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
   } catch (error) {
     let errorCode = 500;
     let errorMessage = "Unable to update the portfolio";
+
+    if (error instanceof PostgrestError) console.error(error);
+    if (
+      error instanceof AppError &&
+      typeof error.details?.status === "number"
+    ) {
+      console.error(error);
+      errorCode = error.details.status;
+      errorMessage = error.message;
+    }
+    return NextResponse.json({ error: errorMessage }, { status: errorCode });
+  }
+}
+
+export async function DELETE(request: NextRequest): Promise<NextResponse> {
+  try {
+    const cookieStore = await cookies();
+    const supabase = await createClient(cookieStore);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new AppError("Unauthenticated", { status: 401 });
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      throw new AppError("Invalid JSON", { status: 400 });
+    }
+    if (
+      typeof body !== "object" ||
+      body === null ||
+      !("id" in body) ||
+      typeof body.id !== "number"
+    ) {
+      throw new AppError("Invalid request: id must be a number", {
+        status: 400,
+      });
+    }
+    const portfolio_id: number = body.id;
+    await deletePortfolio(portfolio_id, user.id, supabase);
+    return NextResponse.json(
+      { message: "deleted successfully" },
+      { status: 200 },
+    );
+  } catch (error) {
+    let errorCode = 500;
+    let errorMessage = "Unable to delete the portfolio";
 
     if (error instanceof PostgrestError) console.error(error);
     if (

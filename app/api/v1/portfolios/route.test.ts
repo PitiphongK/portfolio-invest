@@ -1,12 +1,14 @@
 import { Portfolio } from "@/lib/infrastructure/portfolio-repository";
 import { NextRequest } from "next/server";
 import { beforeEach, expect, test, vi } from "vitest";
-import { GET, nameCharacterLimit, POST, PATCH } from "./route";
+import { GET, nameCharacterLimit, POST, PATCH, DELETE } from "./route";
 import {
   createPortfolio,
   getPortfolios,
   updatePortfolio,
+  deletePortfolio,
 } from "@/lib/service/portfolio-service";
+import { AppError } from "@/lib/error/error";
 
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
@@ -28,6 +30,7 @@ vi.mock(import("@/lib/service/portfolio-service"), () => ({
   createPortfolio: vi.fn(),
   getPortfolios: vi.fn(),
   updatePortfolio: vi.fn(),
+  deletePortfolio: vi.fn(),
 }));
 
 beforeEach(() => {
@@ -286,6 +289,7 @@ test.describe("PATCH /api/v1/portfolios", () => {
     expect(updatePortfolio).toHaveBeenCalledExactlyOnceWith(
       1,
       "Long-term Portfolio (new)",
+      "user-1",
       expect.anything(),
     );
   });
@@ -321,6 +325,7 @@ test.describe("PATCH /api/v1/portfolios", () => {
         expect(updatePortfolio).toHaveBeenCalledExactlyOnceWith(
           id,
           name.trim(),
+          "user-1",
           expect.anything(),
         );
       },
@@ -413,7 +418,7 @@ test.describe("PATCH /api/v1/portfolios", () => {
     expect(await response.json()).toEqual({ error: "Unauthenticated" });
   });
 
-  test("returns a generic error when portfolio creation fails", async () => {
+  test("returns a generic error when portfolio updating fails", async () => {
     vi.mocked(updatePortfolio).mockRejectedValueOnce(
       new Error("Internal database details"),
     );
@@ -463,5 +468,100 @@ test.describe("PATCH /api/v1/portfolios", () => {
       error: "Invalid JSON",
     });
     expect(updatePortfolio).not.toHaveBeenCalled();
+  });
+});
+
+test.describe("DELETE /api/v1/portfolios", () => {
+  vi.mocked(deletePortfolio).mockResolvedValueOnce();
+  test("deletes a portfolio correctly", async () => {
+    const id = 1;
+    const request = new NextRequest("http://localhost:3000/api/v1/portfolios", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id,
+      }),
+    });
+    const response = await DELETE(request);
+    expect(response.status).toBe(200);
+    expect(deletePortfolio).toHaveBeenCalledExactlyOnceWith(
+      id,
+      "user-1",
+      expect.anything(),
+    );
+  });
+
+  test("rejects unauthenticated users", async () => {
+    mocks.getUser.mockResolvedValue({
+      data: { user: null },
+    });
+    const request = new NextRequest("http://localhost:3000/api/v1/portfolios", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: 1,
+      }),
+    });
+    const response = await PATCH(request);
+    expect(deletePortfolio).not.toHaveBeenCalled();
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: "Unauthenticated" });
+  });
+
+  test("returns a generic error when portfolio deletion fails", async () => {
+    vi.mocked(deletePortfolio).mockRejectedValueOnce(
+      new Error("Internal database details"),
+    );
+
+    const request = new NextRequest("http://localhost:3000/api/v1/portfolios", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: 1 }),
+    });
+
+    const response = await DELETE(request);
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: "Unable to delete the portfolio",
+    });
+  });
+
+  test("rejects malformed JSON", async () => {
+    const request = new NextRequest("http://localhost:3000/api/v1/portfolios", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: '{"name":',
+    });
+
+    const response = await PATCH(request);
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: "Invalid JSON",
+    });
+    expect(deletePortfolio).not.toHaveBeenCalled();
+  });
+
+  test("returns a generic error when portfolio deletion fails", async () => {
+    const portfolio_id = 1;
+    vi.mocked(deletePortfolio).mockRejectedValueOnce(
+      new AppError(`You do not own this portfolio id: ${portfolio_id}`, {
+        status: 403,
+      }),
+    );
+
+    const request = new NextRequest("http://localhost:3000/api/v1/portfolios", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: portfolio_id }),
+    });
+
+    const response = await DELETE(request);
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({
+      error: `You do not own this portfolio id: ${portfolio_id}`,
+    });
   });
 });
