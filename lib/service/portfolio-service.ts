@@ -20,3 +20,13 @@ export async function createPortfolio(
   const portfolio = await portfolioRepository.create(name, user.id);
   return portfolio;
 }
+
+export async function updatePortfolio(
+  portfolio_id: number,
+  name: string,
+  supabase: SupabaseClient,
+): Promise<Portfolio | null> {
+  const portfolioRepository = createPortfolioRepository(supabase);
+  const portfolio = await portfolioRepository.updateById(portfolio_id, name);
+  return portfolio;
+}

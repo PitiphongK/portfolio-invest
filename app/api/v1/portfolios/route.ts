@@ -2,6 +2,7 @@ import { AppError } from "@/lib/error/error";
 import {
   createPortfolio,
   getPortfolios,
+  updatePortfolio,
 } from "@/lib/service/portfolio-service";
 import { createClient } from "@/lib/supabase/server";
 import { PostgrestError } from "@supabase/supabase-js";
@@ -68,12 +69,70 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const portfolio = await createPortfolio(name, user, supabase);
     if (!portfolio) {
-      throw new AppError("Unable to create an portfolio", { status: 500 });
+      throw new AppError("Unable to create a portfolio", { status: 500 });
     }
     return NextResponse.json({ portfolio }, { status: 201 });
   } catch (error) {
     let errorCode = 500;
-    let errorMessage = "Unable to create an portfolio";
+    let errorMessage = "Unable to create a portfolio";
+
+    if (error instanceof PostgrestError) console.error(error);
+    if (
+      error instanceof AppError &&
+      typeof error.details?.status === "number"
+    ) {
+      console.error(error);
+      errorCode = error.details.status;
+      errorMessage = error.message;
+    }
+    return NextResponse.json({ error: errorMessage }, { status: errorCode });
+  }
+}
+
+export async function PATCH(request: NextRequest): Promise<NextResponse> {
+  try {
+    const cookieStore = await cookies();
+    const supabase = await createClient(cookieStore);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new AppError("Unauthenticated", { status: 401 });
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      throw new AppError("Invalid JSON", { status: 400 });
+    }
+    if (
+      typeof body !== "object" ||
+      body === null ||
+      !("name" in body) ||
+      !("id" in body) ||
+      typeof body.name !== "string" ||
+      typeof body.id !== "number"
+    ) {
+      throw new AppError(
+        "Invalid request: name must be a string and id must be number",
+        { status: 400 },
+      );
+    }
+    const name: string = body.name.trim();
+    const portfolio_id: number = body.id;
+    if (!name || [...name].length > nameCharacterLimit) {
+      throw new AppError(
+        `Name should be between 1-${nameCharacterLimit} characters`,
+        { status: 400 },
+      );
+    }
+
+    const portfolio = await updatePortfolio(portfolio_id, name, supabase);
+    if (!portfolio) {
+      throw new AppError("Unable to update the portfolio", { status: 500 });
+    }
+    return NextResponse.json({ portfolio }, { status: 200 });
+  } catch (error) {
+    let errorCode = 500;
+    let errorMessage = "Unable to update the portfolio";
 
     if (error instanceof PostgrestError) console.error(error);
     if (

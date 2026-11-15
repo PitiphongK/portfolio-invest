@@ -9,6 +9,7 @@ interface PortfolioRepository {
   create(name: string, user_id: string): Promise<Portfolio | null>;
   findById(id: number): Promise<Portfolio | null>;
   findByUser(user_id: string): Promise<Portfolio[]>;
+  updateById(id: number, name: string): Promise<Portfolio | null>;
 }
 
 export function createPortfolioRepository(
@@ -40,6 +41,16 @@ export function createPortfolioRepository(
         .eq("user_id", user_id);
       if (error) throw error;
       return data ? data : [];
+    },
+    async updateById(id, name) {
+      const { data, error } = await supabase
+        .from("portfolios")
+        .update({ name })
+        .eq("id", id)
+        .select("id, name")
+        .maybeSingle();
+      if (error) throw error;
+      return data ? data : null;
     },
   };
 }
