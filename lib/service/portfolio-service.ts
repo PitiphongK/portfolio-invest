@@ -15,7 +15,7 @@ export async function createPortfolio(
   name: string,
   user: User,
   supabase: SupabaseClient,
-): Promise<Portfolio> {
+): Promise<Portfolio | null> {
   const portfolioRepository = createPortfolioRepository(supabase);
   const portfolio = await portfolioRepository.create(name, user.id);
   return portfolio;

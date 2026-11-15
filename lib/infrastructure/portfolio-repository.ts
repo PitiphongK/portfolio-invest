@@ -2,12 +2,11 @@ import { SupabaseClient } from "@supabase/supabase-js";
 
 export interface Portfolio {
   id: number;
-  user_id: string;
   name: string;
 }
 
 interface PortfolioRepository {
-  create(name: string, user_id: string): Promise<Portfolio>;
+  create(name: string, user_id: string): Promise<Portfolio | null>;
   findById(id: number): Promise<Portfolio | null>;
   findByUser(user_id: string): Promise<Portfolio[]>;
 }
@@ -20,15 +19,15 @@ export function createPortfolioRepository(
       const { data, error } = await supabase
         .from("portfolios")
         .insert({ name, user_id })
-        .select()
+        .select("id, name")
         .maybeSingle();
       if (error) throw error;
-      return data;
+      return data ? data : null;
     },
     async findById(id) {
       const { data, error } = await supabase
         .from("portfolios")
-        .select()
+        .select("id, name")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -37,7 +36,7 @@ export function createPortfolioRepository(
     async findByUser(user_id) {
       const { data, error } = await supabase
         .from("portfolios")
-        .select()
+        .select("id, name")
         .eq("user_id", user_id);
       if (error) throw error;
       return data ? data : [];

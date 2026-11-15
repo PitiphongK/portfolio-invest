@@ -67,6 +67,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const portfolio = await createPortfolio(name, user, supabase);
+    if (!portfolio) {
+      throw new AppError("Unable to create an portfolio", { status: 500 });
+    }
     return NextResponse.json({ portfolio }, { status: 201 });
   } catch (error) {
     let errorCode = 500;

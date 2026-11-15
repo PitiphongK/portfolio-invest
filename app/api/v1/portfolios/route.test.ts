@@ -41,15 +41,15 @@ beforeEach(() => {
 test.describe("GET /api/v1/portfolios", () => {
   test("retrieves portfolios correctly", async () => {
     vi.mocked(getPortfolios).mockResolvedValue([
-      { id: 1, user_id: "user-1", name: "Portfolio-1" },
-      { id: 2, user_id: "user-2", name: "Portfolio-2" },
+      { id: 1, name: "Portfolio-1" },
+      { id: 2, name: "Portfolio-2" },
     ]);
     const response = await GET();
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
       portfolios: [
-        { id: 1, user_id: "user-1", name: "Portfolio-1" },
-        { id: 2, user_id: "user-2", name: "Portfolio-2" },
+        { id: 1, name: "Portfolio-1" },
+        { id: 2, name: "Portfolio-2" },
       ],
     });
   });
@@ -83,7 +83,6 @@ test.describe("POST /api/v1/portfolios", () => {
   test("creates a portfolio correctly", async () => {
     const portfolio: Portfolio = {
       id: 1,
-      user_id: "user-1",
       name: "Long-term Portfolio",
     };
     vi.mocked(createPortfolio).mockResolvedValue(portfolio);
@@ -115,7 +114,6 @@ test.describe("POST /api/v1/portfolios", () => {
       async ({ name, expectedStatus }) => {
         const portfolio: Portfolio = {
           id: 1,
-          user_id: "user-1",
           name: name.trim(),
         };
         vi.mocked(createPortfolio).mockResolvedValue(portfolio);
@@ -215,6 +213,23 @@ test.describe("POST /api/v1/portfolios", () => {
     vi.mocked(createPortfolio).mockRejectedValueOnce(
       new Error("Internal database details"),
     );
+
+    const request = new NextRequest("http://localhost:3000/api/v1/portfolios", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Investments" }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: "Unable to create an portfolio",
+    });
+  });
+
+  test("createPortfolio repo return null", async () => {
+    vi.mocked(createPortfolio).mockResolvedValueOnce(null);
 
     const request = new NextRequest("http://localhost:3000/api/v1/portfolios", {
       method: "POST",
